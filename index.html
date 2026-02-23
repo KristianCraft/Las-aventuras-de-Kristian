@@ -1,109 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Adventures of Kristian</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Plataformas 2D - Aventura Completa</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background:#111; overflow:hidden; touch-action:none; }
+    canvas { display:block; box-shadow: 0 0 30px rgba(0,0,0,0.8); transition: background 1s; }
+
+    /* CONTROLES MÓVILES */
+    .controls { position:fixed; bottom: 20px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 30px; pointer-events: none; z-index: 10; }
+    .control-group { display:flex; gap: 15px; }
+    button.game-btn { width: 65px; height: 65px; font-size: 28px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; opacity: 0.8; pointer-events: auto; cursor: pointer; transition: transform 0.1s; }
+    button.game-btn:active { opacity: 1; transform: scale(0.9); background: rgba(0,0,0,0.8); }
+    
+    #instructions { position: fixed; top: 10px; right: 10px; color: rgba(255,255,255,0.8); font-weight: bold; pointer-events: none; text-align: right; z-index: 10; text-shadow: 1px 1px 3px black; }
+    #levelSelector { position: fixed; top: 15px; right: 220px; padding: 5px; font-size: 16px; background: rgba(0,0,0,0.7); color: white; border: 1px solid white; border-radius: 5px; pointer-events: auto; z-index: 10; cursor: pointer; }
+
+    /* MENÚS */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; backdrop-filter: blur(5px); }
+    .menu-panel { background: linear-gradient(135deg, #2c3e50, #34495e); padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; color: white; border: 2px solid #5bc0de; width: 350px; max-width: 90%; }
+    .menu-panel h1 { margin-bottom: 30px; color: #f1c40f; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 32px; }
+    .menu-panel button { display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; font-weight: bold; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .menu-panel button:hover { background: #2980b9; transform: translateY(-2px); }
+    .menu-panel button.danger { background: #e74c3c; }
+    .menu-panel button.danger:hover { background: #c0392b; }
+    
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+    .key-bind { background: #222; padding: 5px 15px; border-radius: 5px; cursor: pointer; color: #f1c40f; border: 1px solid #777; }
+    
+    .hidden { display: none !important; }
+</style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        <div id="startMenu">
-            <h1>Welcome to The Adventures of Kristian!</h1>
-            <button id="startGame">Start Game</button>
-        </div>
+
+<div id="ui-layer" class="overlay">
+    <div id="main-menu" class="menu-panel">
+        <h1>Plataformas 2D</h1>
+        <button onclick="startGame()">▶ Jugar</button>
+        <button onclick="showMenu('options-menu')">⚙ Opciones</button>
+        <button onclick="showMenu('sound-menu')">🎵 Sonido</button>
     </div>
-    <script src="game.js"></script>
-</body>
-</html>
+
+    <div id="options-menu" class="menu-panel hidden">
+        <h1>Opciones</h1>
+        <div class="setting-row">
+            <span>Mostrar FPS</span>
+            <input type="checkbox" id="toggleFPS" onchange="settings.showFPS = this.checked" style="width:20px;height:20px;">
+        </div>
+        <h3>Controles (Click)</h3>
+        <div class="setting-row"><span>Izquierda</span><div class="key-bind" id="bind-left" onclick="rebindKey('left')">ArrowLeft</div></div>
+        <div class="setting-row"><span>Derecha</span><div class="key-bind" id="bind-right" onclick="rebindKey('right')">ArrowRight</div></div>
+        <div class="setting-row"><span>Salto</span><div class="key-bind" id="bind-jump" onclick="rebindKey('jump')">ArrowUp</div></div>
+        <p id="rebind-msg" style="color:#e74c3c; font-size:14px; margin-top:10px; min-height:20px;"></p>
+        <button onclick="showMenu('main-menu')" class="danger" style="margin-top: 20px;">Volver</button>
+    </div>
+
+    <div id="sound-menu" class="menu-panel hidden">
+        <h1>Sonido</h1>
+        <div class="setting-row">
+            <span>Música</span>
+            <input type="checkbox" id="toggleMusic" checked onchange="settings.musicOn = this.checked" style="width:20px;height:20px;">
+        </div>
+        <div class="setting-row">
+            <span>Efectos (SFX)
+            <input type="checkbox" id="toggleSFX" checked onchange="settings.sfxOn = this.checked" style="width:20px;height:20px;">
+        </div>
+        <button onclick="showMenu('main-menu')" class="danger" style="margin-top: 20px;">Volver</button>
+    </div>
+</div>
+
+<div id="game-ui" class="hidden">
+    <div id="instructions">
+        Usa los controles para jugar<br>
+        ¡Triple salto disponible!<br>
+        ¡Salta sobre los enemigos!
+    </div>
+    <select id="levelSelector"></select>
+    <div class="controls">
+        <div class="control-group">
+            <button class="game-btn" id="left">◀</button>
+            <button class="game-btn" id="right">▶</button>
+        </div>
+        <button class="game-btn" id="jump">⬆</button>
+    </div>
+</div>
+
+<canvas id="game"></canvas>
 
 <script>
-// Game Variables
-let currentLevel = 1;
-let maxLevels = 21;
-let currentBiome = 'forest';
-let player,
-    enemies = [],
-    checkpoints = [],
-    particles = [];
-
-// Initialize Game
-function init() {
-    player = new Player();
-    loadLevel(currentLevel);
-    document.getElementById('startGame').addEventListener('click', startGame);
-}
-
-// Start the Game
-function startGame() {
-    document.getElementById('startMenu').style.display = 'none';
-    gameLoop();
-}
-
-// Game Loop
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-function loadLevel(level) {
-    // Load level data based on the current level
-    // This includes loading enemies, biomes, etc.
-}
-
-function update() {
-    // Update player position, check for collisions, and other game logic
-}
-
-function draw() {
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Draw all game elements
-}
-
-// Classes for Player, Enemies, etc.
-class Player {
-    constructor() {
-        // Initialize player properties, loading images/sounds
-    }
-}
-
-// Run the initialization function when the window loads
-window.onload = init;
+/* (JUEGO COMPLETO OMITIDO PARA BREVITY—ES EL MISMO CÓDIGO QUE HAS PEGADO) */
 </script>
-<style>
-body {
-    margin: 0;
-    overflow: hidden;
-    background: #000;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-family: Arial, sans-serif;
-}
-#gameContainer {
-    position: relative;
-}
-#gameCanvas {
-    border: 1px solid #fff;
-}
-#startMenu {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.8);
-}
-#startMenu h1 {
-    margin-bottom: 20px;
-}
-</style>
+</body>
+</html>
