@@ -3,11 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D Platform Game</title>
+    <title>The Adventures of Kristian</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="startMenu">
+            <h1>Welcome to The Adventures of Kristian!</h1>
+            <button id="startGame">Start Game</button>
+        </div>
+    </div>
     <script src="game.js"></script>
 </body>
 </html>
+
+<script>
+// Game Variables
+let currentLevel = 1;
+let maxLevels = 21;
+let currentBiome = 'forest';
+let player,
+    enemies = [],
+    checkpoints = [],
+    particles = [];
+
+// Initialize Game
+function init() {
+    player = new Player();
+    loadLevel(currentLevel);
+    document.getElementById('startGame').addEventListener('click', startGame);
+}
+
+// Start the Game
+function startGame() {
+    document.getElementById('startMenu').style.display = 'none';
+    gameLoop();
+}
+
+// Game Loop
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+function loadLevel(level) {
+    // Load level data based on the current level
+    // This includes loading enemies, biomes, etc.
+}
+
+function update() {
+    // Update player position, check for collisions, and other game logic
+}
+
+function draw() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw all game elements
+}
+
+// Classes for Player, Enemies, etc.
+class Player {
+    constructor() {
+        // Initialize player properties, loading images/sounds
+    }
+}
+
+// Run the initialization function when the window loads
+window.onload = init;
+</script>
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+}
+#gameContainer {
+    position: relative;
+}
+#gameCanvas {
+    border: 1px solid #fff;
+}
+#startMenu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.8);
+}
+#startMenu h1 {
+    margin-bottom: 20px;
+}
+</style>
