@@ -1,4 +1,4 @@
-MIT License
+MIT License (con requisito de atribución visible)
 
 Copyright (c) 2026 KristianCraft
 
@@ -9,8 +9,14 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. ATTRIBUTION: Any game, application or work that is based on or incorporates
+   a substantial portion of the Software must display the credit
+   "Creado por @KristianCraft" (or "Created by @KristianCraft") in a visible
+   place, such as the main menu, start screen or credits screen, and in the
+   description of the project if it is published online.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +25,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+Español (resumen informativo; el texto en inglés es el que rige):
+Puedes usar, copiar, modificar y distribuir este juego libremente, pero debes
+conservar este aviso de copyright y mostrar de forma visible el crédito
+"Creado por @KristianCraft" en tu versión (menú principal, pantalla de inicio
+o de créditos) y en la descripción del proyecto si lo publicas.
