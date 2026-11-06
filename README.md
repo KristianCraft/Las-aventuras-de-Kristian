@@ -1,30 +1,33 @@
 # Las aventuras de Kristian
 
-## Introduction
-"Las aventuras de Kristian" is an engaging game that takes players through thrilling adventures filled with challenges and exciting storylines.
+Juego de plataformas 2D hecho en un solo archivo HTML (HTML + CSS + JavaScript, sin dependencias).
 
-## Game Features
-- **Adventure Storyline:** Immerse yourself in a captivating story that evolves based on your choices.
-- **Character Customization:** Create and customize your own character with unique skills and appearances.
-- **Challenging Quests:** Explore different quests that test your skills and decision-making.
+## Características
 
-## Gameplay Instructions
-1. **Starting the Game:** Begin by selecting your character and customizing their appearance.
-2. **Exploration:** Navigate through various environments to uncover secrets and complete quests.
-3. **Interacting with NPCs:** Engage with non-playable characters to receive quests and gather information.
-4. **Inventory Management:** Collect items and manage your inventory to assist you in your adventures.
+- 21 niveles: bosque, ciudad y más biomas generados.
+- **Triple salto** y saltos sobre los enemigos para derrotarlos.
+- Nivel 20: pelea contra un jefe.
+- Nivel 21: escape contra reloj, con checkpoints y un perseguidor.
+- Música y efectos de sonido generados por código, con opción para desactivarlos.
+- Controles táctiles en pantalla y teclado, con teclas configurables desde el menú.
+- Selector de nivel y contador de FPS opcional.
 
-## Installation
-To install the game, follow these steps:
-1. Clone the repository: `git clone https://github.com/KristianCraft/Las-aventuras-de-Kristian.git`
-2. Navigate to the directory: `cd Las-aventuras-de-Kristian`
-3. Run the game using the provided executable or command.
+## Cómo jugar
 
-## Contact
-For any questions or feedback, please reach out to the developer at: [Kristian's Email]. 
+**En el navegador:** abre `index.html` (o la versión de `apk/www/index.html`) en cualquier navegador moderno.
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**En Android:** descarga el APK desde la sección [Releases](../../releases). Si Android pide permiso, activa la instalación de apps desde el navegador.
 
-## Conclusion
-Enjoy your adventures in "Las aventuras de Kristian"!
+**Controles por defecto:** flecha izquierda / derecha para moverte y flecha arriba para saltar (puedes cambiarlas en *Configuración*). En móvil usa los botones de la pantalla.
+
+## Crear el APK tú mismo
+
+La carpeta `apk/` contiene un proyecto [Capacitor](https://capacitorjs.com/). El APK se compila automáticamente con GitHub Actions: ve a la pestaña **Actions → Construir APK → Run workflow**. Al terminar, el APK aparece como una nueva release.
+
+Para actualizar el juego en el APK, cambia `apk/www/index.html` y vuelve a ejecutar el workflow.
+
+## Licencia
+
+Código abierto bajo la [licencia MIT](LICENSE). Puedes usarlo, modificarlo y compartirlo, manteniendo el aviso de copyright.
+
+Creado por [@KristianCraft](https://github.com/KristianCraft).
