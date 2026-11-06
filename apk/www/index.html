@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Plataformas 2D - Aventura Completa</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background:#111; overflow:hidden; touch-action:none; }
+    canvas { display:block; box-shadow: 0 0 30px rgba(0,0,0,0.8); transition: background 1s; }
+
+    /* CONTROLES MÓVILES */
+    .controls { position:fixed; bottom: 20px; left:0; width:100%; display:flex; justify-content:space-between; padding:0 30px; pointer-events: none; z-index: 10; }
+    .control-group { display:flex; gap: 15px; }
+    button.game-btn { width: 65px; height: 65px; font-size: 28px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; opacity: 0.8; pointer-events: auto; cursor: pointer; transition: transform 0.1s; }
+    button.game-btn:active { opacity: 1; transform: scale(0.9); background: rgba(0,0,0,0.8); }
+    
+    #instructions { position: fixed; top: 10px; right: 10px; color: rgba(255,255,255,0.8); font-weight: bold; pointer-events: none; text-align: right; z-index: 10; text-shadow: 1px 1px 3px black; }
+    #levelSelector { position: fixed; top: 15px; right: 220px; padding: 5px; font-size: 16px; background: rgba(0,0,0,0.7); color: white; border: 1px solid white; border-radius: 5px; pointer-events: auto; z-index: 10; cursor: pointer; }
+
+    /* MENÚS */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; backdrop-filter: blur(5px); }
+    .menu-panel { background: linear-gradient(135deg, #2c3e50, #34495e); padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; color: white; border: 2px solid #5bc0de; width: 350px; max-width: 90%; }
+    .menu-panel h1 { margin-bottom: 30px; color: #f1c40f; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 32px; }
+    .menu-panel button { display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; font-weight: bold; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .menu-panel button:hover { background: #2980b9; transform: translateY(-2px); }
+    .menu-panel button.danger { background: #e74c3c; }
+    .menu-panel button.danger:hover { background: #c0392b; }
+    
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+    .key-bind { background: #222; padding: 5px 15px; border-radius: 5px; cursor: pointer; color: #f1c40f; border: 1px solid #777; }
+    
+    .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="ui-layer" class="overlay">
+    <div id="main-menu" class="menu-panel">
+        <h1>Plataformas 2D</h1>
+        <button onclick="startGame()">▶ Jugar</button>
+        <button onclick="showMenu('options-menu')">⚙ Opciones</button>
+        <button onclick="showMenu('sound-menu')">🎵 Sonido</button>
+    </div>
+
+    <div id="options-menu" class="menu-panel hidden">
+        <h1>Opciones</h1>
+        <div class="setting-row">
+            <span>Mostrar FPS</span>
+            <input type="checkbox" id="toggleFPS" onchange="settings.showFPS = this.checked" style="width:20px;height:20px;">
+        </div>
+        <h3>Controles (Click)</h3>
+        <div class="setting-row"><span>Izquierda</span><div class="key-bind" id="bind-left" onclick="rebindKey('left')">ArrowLeft</div></div>
+        <div class="setting-row"><span>Derecha</span><div class="key-bind" id="bind-right" onclick="rebindKey('right')">ArrowRight</div></div>
+        <div class="setting-row"><span>Salto</span><div class="key-bind" id="bind-jump" onclick="rebindKey('jump')">ArrowUp</div></div>
+        <p id="rebind-msg" style="color:#e74c3c; font-size:14px; margin-top:10px; min-height:20px;"></p>
+        <button onclick="showMenu('main-menu')" class="danger" style="margin-top: 20px;">Volver</button>
+    </div>
+
+    <div id="sound-menu" class="menu-panel hidden">
+        <h1>Sonido</h1>
+        <div class="setting-row">
+            <span>Música</span>
+            <input type="checkbox" id="toggleMusic" checked onchange="settings.musicOn = this.checked" style="width:20px;height:20px;">
+        </div>
+        <div class="setting-row">
+            <span>Efectos (SFX)</span>
+            <input type="checkbox" id="toggleSFX" checked onchange="settings.sfxOn = this.checked" style="width:20px;height:20px;">
+        </div>
+        <button onclick="showMenu('main-menu')" class="danger" style="margin-top: 20px;">Volver</button>
+    </div>
+</div>
+
+<div id="game-ui" class="hidden">
+    <div id="instructions">
+        Usa los controles para jugar<br>
+        ¡Triple salto disponible!<br>
+        ¡Salta sobre los enemigos!
+    </div>
+    <select id="levelSelector"></select>
+    <div class="controls">
+        <div class="control-group">
+            <button class="game-btn" id="left">◀</button>
+            <button class="game-btn" id="right">▶</button>
+        </div>
+        <button class="game-btn" id="jump">⬆</button>
+    </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let settings = { showFPS: false, musicOn: true, sfxOn: true };
+let customKeys = { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" };
+let waitingForKey = null;
+
+function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize(); window.addEventListener("resize", resize);
+
+const gravity = 0.5; 
+let cameraX = 0;
+let currentLevelIndex = 1;
+let frames = 0; 
+let gameState = "menu"; // "menu", "spawning", "playing", "dead", "won", "boss_exploding"
+let spawnTimer = 0;
+let lastTime = 0, currentFPS = 0;
+let activeCheckpoint = null; // Para guardar progreso en persecución
+
+let particles = [];
+function createParticles(x, y, color, amount, speedMultiplier = 1) {
+    for(let i = 0; i < amount; i++) {
+        particles.push({
+            x: x, y: y, dx: (Math.random() - 0.5) * 12 * speedMultiplier, dy: (Math.random() - 0.5) * 12 * speedMultiplier,
+            life: 1.0, color: color, size: Math.random() * 6 + 2
+        });
+    }
+}
+
+// ==========================================
+// NUEVO SISTEMA DE MÚSICA 8-BIT MEJORADO
+// ==========================================
+let audioCtx; let musicStarted = false; let noteIndex = 0;
+
+const musicTracks = {
+    // Bosque: Melodía mágica y alegre (Onda senoidal)
+    'forest':  { notes: [329.6, 392.0, 440.0, 523.3, 440.0, 392.0], wave: 'sine', speed: 250 },     
+    // Ciudad: Acorde menor pesado y cyberpunk (Onda cuadrada)
+    'city':    { notes: [130.8, 155.6, 196.0, 233.1, 196.0, 155.6], wave: 'square', speed: 200 },   
+    // Nieve: Tonos altos y cristalinos (Onda triangular)
+    'snow':    { notes: [523.3, 659.3, 784.0, 1046.5, 784.0, 659.3], wave: 'triangle', speed: 300 },
+    // Desierto: Escala frigia misteriosa (Onda triangular)
+    'desert':  { notes: [329.6, 349.2, 415.3, 440.0, 415.3, 349.2], wave: 'triangle', speed: 220 }, 
+    // Volcán / Jefe: Disonante, tenso y grave (Onda de sierra)
+    'volcano': { notes: [82.4, 116.5, 82.4, 87.3], wave: 'sawtooth', speed: 160 },                  
+    // Escape: Rápido y frenético
+    'escape':  { notes: [164.8, 174.6, 196.0, 233.1, 329.6, 233.1], wave: 'sawtooth', speed: 120 }  
+};
+
+function initMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Forzamos al navegador a despertar el audio si estaba bloqueado
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    
+    playNextNote();
+}
+
+function playNextNote() {
+    if (!audioCtx || gameState === "won" || gameState === "menu") { musicStarted = false; return; }
+    
+    let speed = 300; 
+    
+    if(settings.musicOn && gameState !== "dead" && currentLevelData) {
+        let biome = currentLevelData.biome;
+        let trackName = (currentLevelIndex >= 20) ? (currentLevelIndex === 21 ? 'escape' : 'volcano') : biome;
+        let track = musicTracks[trackName] || musicTracks['forest'];
+        
+        let notes = track.notes;
+        speed = track.speed;
+        
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode); 
+        gainNode.connect(audioCtx.destination);
+        
+        osc.type = track.wave;
+        osc.frequency.value = notes[noteIndex % notes.length];
+        
+        // Efecto Envolvente: Hace que suene como un instrumento real y no como un pitido infinito
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.03); // Ataque rápido
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (speed/1000) * 0.9); // Decaimiento
+        
+        osc.start(); 
+        osc.stop(audioCtx.currentTime + (speed/1000));
+        
+        noteIndex++;
+    }
+    
+    setTimeout(playNextNote, speed);
+}
+
+function playSound(type) {
+    if (!audioCtx || !settings.sfxOn) return;
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+    
+    if(type === 'jump') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.15);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+}
+// ==========================================
+
+const enemyColors = ["#f1c40f", "#e67e22", "#9b59b6", "#1abc9c", "#3498db"];
+const biomesList = ['forest', 'city', 'snow', 'desert', 'volcano'];
+
+const levels = {
+    1: { biome: 'forest', goal: { x: 1500, y: 350, width: 50, height: 70 }, platforms: [{x: 0, y: 500, width: 700, height: 400, type:'ground'}, {x: 850, y: 450, width: 300, height: 400, type:'ground'}, {x: 1300, y: 420, width: 400, height: 400, type:'ground'}], enemies: [], trees: [{x: 200, y: 500}, {x: 1000, y: 450}], houses: [{x: 400, y: 500}] },
+    2: { biome: 'city', goal: { x: 2200, y: 230, width: 50, height: 70 }, platforms: [{x: 0, y: 500, width: 400, height: 400, type:'road'}, {x: 500, y: 400, width: 120, height: 20, type:'bridge'}, {x: 750, y: 300, width: 120, height: 20, type:'bridge'}, {x: 1000, y: 500, width: 600, height: 400, type:'road'}, {x: 1750, y: 400, width: 120, height: 20, type:'bridge'}, {x: 2000, y: 300, width: 400, height: 400, type:'road'}], enemies: [{x: 1100, y: 470, width: 30, height: 30, speed: 2, minX: 1000, maxX: 1570, dx: 2, dy: 0, grounded: false, color: "#e67e22"}], trees: [], houses: [{x: 150, y: 500}, {x: 1200, y: 500}] }
+};
+
+for (let i = 3; i <= 19; i++) {
+    let biome = biomesList[i % biomesList.length];
+    let platforms = [{x: 0, y: 500, width: 300, height: 400, type: biome==='city'?'road':'ground'}];
+    let enemies = []; let trees = []; let houses = [];
+    let lastX = 300;
+    
+    for(let j = 0; j < 4 + (i/2); j++) {
+        let gapX = 100 + Math.random() * 200;
+        let pWidth = 150 + Math.random() * 300;
+        let pY = 250 + Math.random() * 250;
+        let isBridge = Math.random() > 0.7;
+        let pType = isBridge ? 'bridge' : (biome === 'city' ? 'road' : 'ground');
+        
+        lastX += gapX;
+        platforms.push({x: lastX, y: pY, width: pWidth, height: isBridge ? 20 : 400, type: pType});
+        
+        if (!isBridge) {
+            if (Math.random() > 0.5 && biome !== 'city') trees.push({x: lastX + pWidth/2, y: pY});
+            if (Math.random() > 0.7) houses.push({x: lastX + 20, y: pY});
+        }
+        
+        if (j > 0 && Math.random() > 0.2) {
+            enemies.push({ x: lastX + 50, y: pY - 30, width: 30, height: 30, speed: 2 + (i*0.15), minX: lastX, maxX: lastX + pWidth - 30, dx: 2 + (i*0.1), dy: 0, grounded: false, color: enemyColors[Math.floor(Math.random() * enemyColors.length)] });
+        }
+        lastX += pWidth;
+    }
+    levels[i] = { biome: biome, goal: { x: lastX - 100, y: platforms[platforms.length-1].y - 70, width: 50, height: 70 }, platforms: platforms, enemies: enemies, trees: trees, houses: houses };
+}
+
+levels[20] = {
+    biome: 'volcano', goal: { x: 3500, y: -1000, width: 50, height: 70 }, 
+    platforms: [ {x: 0, y: 500, width: 400, height: 400, type:'ground'}, {x: 450, y: 500, width: 1500, height: 400, type:'ground'}, {x: 450, y: 250, width: 150, height: 20, type:'bridge'}, {x: 1800, y: 250, width: 150, height: 20, type:'bridge'}, {x: 1125, y: 150, width: 150, height: 20, type:'bridge'} ],
+    enemies: [ { isBoss: true, name: "Kristian Craft", hp: 30, maxHp: 30, x: 1500, y: 300, width: 120, height: 120, speed: 3.5, minX: 450, maxX: 1830, dx: -3.5, dy: 0, grounded: false } ], trees: [], houses: []
+};
+
+// NIVEL 21: MÁS LARGO Y CON CHECKPOINTS
+let escapePlatforms = [{x: 0, y: 400, width: 400, height: 400, type:'road'}];
+let escapeCheckpoints = [];
+let escapeLastX = 400;
+for(let k=1; k<=40; k++){
+    let pWidth = 100 + Math.random()*200;
+    let gap = 150 + Math.random()*150;
+    escapeLastX += gap;
+    let pY = 200 + Math.random()*300;
+    escapePlatforms.push({x: escapeLastX, y: pY, width: pWidth, height: 20, type:'bridge'});
+    
+    // Checkpoint cada 10 plataformas
+    if(k % 10 === 0) {
+        escapeCheckpoints.push({x: escapeLastX + pWidth/2, y: pY - 50, width: 40, height: 50, active: false});
+    }
+    escapeLastX += pWidth;
+}
+levels[21] = {
+    biome: 'city', goal: { x: escapeLastX, y: escapePlatforms[escapePlatforms.length-1].y - 70, width: 50, height: 70 },
+    platforms: escapePlatforms, checkpoints: escapeCheckpoints,
+    enemies: [ { isChaseBoss: true, name: "VENGANZA", hp: 999, maxHp: 999, x: -400, y: 100, width: 180, height: 180, speed: 5.2, dx: 0, dy: 0, grounded: false } ], trees: [], houses: []
+};
+
+const levelSelector = document.getElementById("levelSelector");
+for(let i = 1; i <= 21; i++) {
+    let opt = document.createElement('option'); opt.value = i;
+    opt.innerHTML = i === 20 ? "Nivel 20 (Jefe)" : (i === 21 ? "Nivel 21 (Escape)" : "Nivel " + i);
+    levelSelector.appendChild(opt);
+}
+levelSelector.addEventListener('change', (e) => { activeCheckpoint = null; loadLevel(parseInt(e.target.value)); e.target.blur(); });
+
+let currentLevelData;
+let startPortalData = {x: 0, y: 0, width: 50, height: 70}; 
+
+const player = { x: 50, y: 100, width: 30, height: 30, dx: 0, dy: 0, speed: 6, jumpForce: 11.5, grounded: false, jumps: 0, maxJumps: 3, hp: 15, maxHp: 15, invulnerable: false };
+const keys = { left: false, right: false, jump: false, jumpProcessed: false };
+
+const pressJump = (e) => {
+    e?.preventDefault();
+    if(gameState !== "playing") return;
+    if (!keys.jumpProcessed) {
+        if (player.grounded || player.jumps < player.maxJumps) {
+            player.dy = -player.jumpForce; player.grounded = false; player.jumps++; keys.jumpProcessed = true; playSound('jump');
+            createParticles(player.x+15, player.y+30, "white", 5, 0.5);
+        }
+    }
+};
+const releaseJump = (e) => { e?.preventDefault(); keys.jumpProcessed = false; };
+
+function bindButton(id, keyAction, pressAction, releaseAction) {
+    const btn = document.getElementById(id);
+    const press = (e) => { e.preventDefault(); keyAction(true); pressAction && pressAction(e); };
+    const release = (e) => { e.preventDefault(); keyAction(false); releaseAction && releaseAction(e); };
+    btn.addEventListener("touchstart", press, {passive: false}); btn.addEventListener("touchend", release, {passive: false});
+    btn.addEventListener("mousedown", press); window.addEventListener("mouseup", release); 
+}
+bindButton("left", (val) => keys.left = val);
+bindButton("right", (val) => keys.right = val);
+bindButton("jump", () => {}, pressJump, releaseJump);
+
+window.addEventListener("keydown", (e) => {
+    if(waitingForKey) {
+        customKeys[waitingForKey] = e.code; document.getElementById(`bind-${waitingForKey}`).innerText = e.code;
+        document.getElementById("rebind-msg").innerText = "¡Tecla guardada!"; waitingForKey = null; return;
+    }
+    if(e.code === customKeys.left || e.code === "KeyA") keys.left = true;
+    if(e.code === customKeys.right || e.code === "KeyD") keys.right = true;
+    if(e.code === customKeys.jump || e.code === "KeyW" || e.code === "Space") pressJump(e);
+});
+window.addEventListener("keyup", (e) => {
+    if(e.code === customKeys.left || e.code === "KeyA") keys.left = false;
+    if(e.code === customKeys.right || e.code === "KeyD") keys.right = false;
+    if(e.code === customKeys.jump || e.code === "KeyW" || e.code === "Space") releaseJump(e);
+});
+
+function showMenu(menuId) {
+    document.querySelectorAll('.menu-panel').forEach(m => m.classList.add('hidden'));
+    document.getElementById(menuId).classList.remove('hidden');
+}
+function rebindKey(action) {
+    waitingForKey = action; document.getElementById(`bind-${action}`).innerText = "...";
+    document.getElementById("rebind-msg").innerText = "Presiona una tecla...";
+}
+
+function startGame() {
+    document.getElementById('ui-layer').classList.add('hidden');
+    document.getElementById('game-ui').classList.remove('hidden');
+    loadLevel(1);
+    initMusic(); 
+}
+
+function killPlayer() {
+    if(gameState === "dead") return;
+    gameState = "dead"; playSound('hit');
+    createParticles(player.x + player.width/2, player.y + player.height/2, "#ff4757", 50, 2);
+    setTimeout(() => { loadLevel(currentLevelIndex, true); }, 1200); 
+}
+
+function loadLevel(levelNum, isRespawn = false) {
+    if(levelNum > 21) { gameState = "won"; return; }
+    currentLevelIndex = levelNum; levelSelector.value = levelNum; 
+    currentLevelData = JSON.parse(JSON.stringify(levels[currentLevelIndex]));
+    
+    if (!isRespawn) activeCheckpoint = null;
+
+    if (activeCheckpoint) {
+        player.x = activeCheckpoint.x; player.y = activeCheckpoint.y - 30;
+        if(currentLevelData.enemies[0] && currentLevelData.enemies[0].isChaseBoss) {
+            currentLevelData.enemies[0].x = player.x - 600; 
+            currentLevelData.enemies[0].y = player.y - 100;
+        }
+    } else {
+        player.x = 50; player.y = currentLevelData.platforms[0].y - 30;
+    }
+    
+    player.dx = 0; player.dy = 0; player.jumps = 0; player.hp = player.maxHp; player.invulnerable = false;
+    startPortalData.x = player.x - 10; startPortalData.y = player.y - 40;
+    
+    gameState = "spawning"; spawnTimer = 40; 
+    particles = []; 
+    
+    const bgColors = {
+        'forest': 'linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)', 'city': 'linear-gradient(to bottom, #2c3e50 0%, #3498db 100%)',
+        'snow': 'linear-gradient(to bottom, #e0c3fc 0%, #8ec5fc 100%)', 'desert': 'linear-gradient(to bottom, #f6d365 0%, #fda085 100%)',
+        'volcano': 'linear-gradient(to bottom, #43210b 0%, #d84b2a 100%)'
+    };
+    canvas.style.background = bgColors[currentLevelData.biome];
+}
+
+function isColliding(a, b) { return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y; }
+
+function update(){
+    frames++;
+    for(let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i]; p.x += p.dx; p.y += p.dy; p.life -= 0.02; 
+        if(p.life <= 0) particles.splice(i, 1);
+    }
+
+    if(gameState === "won" || gameState === "menu") return;
+
+    if(gameState === "spawning") {
+        spawnTimer--;
+        player.dy -= 0.5; 
+        player.y += player.dy;
+        if(spawnTimer <= 0) gameState = "playing";
+    }
+
+    if(gameState === "playing" || gameState === "spawning") {
+        if(gameState === "playing") {
+            if(keys.left) player.dx = -player.speed; else if(keys.right) player.dx = player.speed; else player.dx = 0;
+            player.x += player.dx;
+        }
+
+        for(let p of currentLevelData.platforms){
+            if(isColliding(player, p)){
+                if(player.dx > 0) player.x = p.x - player.width; else if(player.dx < 0) player.x = p.x + p.width;
+                player.dx = 0;
+            }
+        }
+
+        player.dy += gravity; player.y += player.dy; player.grounded = false;
+
+        for(let p of currentLevelData.platforms){
+            if(isColliding(player, p)){
+                if(player.dy > 0){ player.y = p.y - player.height; player.dy = 0; player.grounded = true; player.jumps = 0; } 
+                else if(player.dy < 0){ player.y = p.y + p.height; player.dy = 0; }
+            }
+        }
+
+        if(currentLevelData.checkpoints) {
+            for(let cp of currentLevelData.checkpoints) {
+                if(!cp.active && isColliding(player, cp)) {
+                    cp.active = true; activeCheckpoint = {x: cp.x, y: cp.y};
+                    createParticles(cp.x, cp.y, "#2ecc71", 20); playSound('jump');
+                }
+            }
+        }
+
+        if(isColliding(player, currentLevelData.goal)) { activeCheckpoint = null; loadLevel(currentLevelIndex + 1); return; }
+        if(player.y > canvas.height + 400) killPlayer();
+
+        let targetCameraX = player.x - canvas.width / 2.5;
+        if(targetCameraX < 0) targetCameraX = 0;
+        cameraX += (targetCameraX - cameraX) * 0.1;
+    }
+
+    for(let i = currentLevelData.enemies.length - 1; i >= 0; i--) {
+        let e = currentLevelData.enemies[i];
+        
+        if (e.isChaseBoss) {
+            if(gameState === "playing") {
+                e.x += e.speed; e.y += (player.y - e.y) * 0.02; 
+                if(frames % 10 === 0) createParticles(e.x + 20, e.y + e.height, "#34495e", 2);
+            }
+        } else {
+            e.dy += gravity; e.y += e.dy; e.grounded = false;
+            for(let p of currentLevelData.platforms){
+                if(isColliding(e, p)){
+                    if(e.dy > 0){ e.y = p.y - e.height; e.dy = 0; e.grounded = true; } 
+                    else if(e.dy < 0){ e.y = p.y + p.height; e.dy = 0; }
+                }
+            }
+
+            if(e.isBoss) {
+                if(player.x < e.x) e.dx = -e.speed; else if(player.x > e.x + e.width) e.dx = e.speed;
+                if(e.grounded && Math.random() < 0.03) e.dy = -15; 
+                if(e.hp <= 10) e.speed = 5;
+            } else {
+                if(e.x < e.minX || e.x + e.width > e.maxX) e.dx *= -1;
+                if(e.grounded && Math.random() < 0.01) e.dy = -8; 
+            }
+            e.x += e.dx;
+        }
+
+        if(gameState === "playing") {
+            let hitbox = {x: player.x, y: player.y, width: player.width, height: player.height};
+            if(isColliding(hitbox, e)) {
+                let prevBottom = (player.y - player.dy) + player.height;
+                let isStomp = !e.isChaseBoss && player.dy > 0 && prevBottom <= e.y + 30; 
+                
+                if(isStomp) {
+                    player.dy = -player.jumpForce * 0.9; player.jumps = 1; playSound('hit');
+                    if(e.isBoss) {
+                        e.hp--; e.damaged = true; setTimeout(() => e.damaged = false, 100);
+                        createParticles(player.x, player.y + player.height, "white", 10);
+                        if(e.hp <= 0) {
+                            createParticles(e.x + e.width/2, e.y + e.height/2, "#8e44ad", 150, 3);
+                            currentLevelData.enemies.splice(i, 1); gameState = "boss_exploding";
+                            setTimeout(() => { loadLevel(21); }, 2500); 
+                        }
+                    } else {
+                        createParticles(e.x + e.width/2, e.y + e.height/2, e.color || "#f1c40f", 20); currentLevelData.enemies.splice(i, 1); 
+                    }
+                } else {
+                    if (!player.invulnerable) {
+                        playSound('hit');
+                        if(e.isChaseBoss) { killPlayer(); } 
+                        else {
+                            player.hp -= 1; player.invulnerable = true; player.dy = -7; player.x += (player.x < e.x) ? -20 : 20; 
+                            if (player.hp <= 0) killPlayer(); else setTimeout(() => player.invulnerable = false, 1500);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function drawDecorations(biome) {
+    if(biome === 'city') {
+        ctx.fillStyle = "rgba(255,255,255,0.1)";
+        for(let i=0; i<15; i++) {
+            let cx = (i * 200 - (cameraX * 0.3)) % (canvas.width + 800) - 200;
+            ctx.fillRect(cx, canvas.height - 400 - (i%4)*100, 100, 600);
+        }
+    } else {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        for(let i = 0; i < 10; i++) {
+            let cloudX = (i * 300 - (cameraX * 0.2)) % (canvas.width + 400);
+            ctx.beginPath(); ctx.arc(cloudX, 100 + (i%3)*30, 40, 0, Math.PI*2); ctx.arc(cloudX+30, 80 + (i%3)*30, 50, 0, Math.PI*2); ctx.arc(cloudX+70, 100 + (i%3)*30, 40, 0, Math.PI*2); ctx.fill();
+        }
+    }
+}
+
+function drawHouse(x, y) {
+    ctx.fillStyle = "#8d6e63"; ctx.fillRect(x, y - 40, 50, 40); 
+    ctx.fillStyle = "#d32f2f"; ctx.beginPath(); ctx.moveTo(x-10, y-40); ctx.lineTo(x+25, y-70); ctx.lineTo(x+60, y-40); ctx.fill(); 
+    ctx.fillStyle = "#bbdefb"; ctx.fillRect(x+10, y-25, 12, 12); 
+    ctx.fillStyle = "#5d4037"; ctx.fillRect(x+30, y-20, 12, 20); 
+}
+
+function drawPortal(goal) {
+    if(goal.y < -500) return;
+    ctx.fillStyle = "#1a0b2e";
+    ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+    let pulse = Math.abs(Math.sin(frames / 30)) * 0.3;
+    ctx.fillStyle = `rgba(138, 43, 226, ${0.6 + pulse})`;
+    ctx.fillRect(goal.x + 8, goal.y + 8, goal.width - 16, goal.height - 16);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    if(frames % 10 < 5) ctx.fillRect(goal.x + 15, goal.y + 20 + pulse*20, 4, 4);
+    if(frames % 15 < 7) ctx.fillRect(goal.x + 30, goal.y + 40 - pulse*20, 4, 4);
+}
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(gameState === "menu") return; 
+    
+    if(gameState === "won") {
+        canvas.style.background = "#000"; ctx.fillStyle = "white"; ctx.textAlign = "center";
+        ctx.font = "bold 60px 'Segoe UI'"; ctx.fillText("¡Felicidades escapaste!", canvas.width/2, canvas.height/2 - 20);
+        ctx.font = "bold 30px 'Segoe UI'"; ctx.fillStyle = "#f1c40f"; ctx.fillText("Creado por @KristianCraft", canvas.width/2, canvas.height/2 + 50);
+        return;
+    }
+
+    drawDecorations(currentLevelData.biome);
+
+    ctx.save();
+    ctx.translate(-Math.floor(cameraX), 0);
+    
+    drawPortal(startPortalData);
+    drawPortal(currentLevelData.goal);
+    
+    for(let h of currentLevelData.houses) drawHouse(h.x, h.y);
+    
+    for(let t of currentLevelData.trees) {
+        ctx.fillStyle = "#5D4037"; ctx.fillRect(t.x + 10, t.y - 40, 15, 40);
+        ctx.fillStyle = (currentLevelData.biome==='snow')?"#fff":"#2E7D32";
+        ctx.beginPath(); ctx.arc(t.x + 17, t.y - 50, 25, 0, Math.PI*2); ctx.fill();
+    }
+
+    if(currentLevelData.checkpoints) {
+        for(let cp of currentLevelData.checkpoints) {
+            ctx.fillStyle = "#bdc3c7"; ctx.fillRect(cp.x, cp.y, 4, cp.height); 
+            ctx.fillStyle = cp.active ? "#2ecc71" : "#e74c3c"; 
+            ctx.beginPath(); ctx.moveTo(cp.x+4, cp.y); ctx.lineTo(cp.x+25, cp.y+10); ctx.lineTo(cp.x+4, cp.y+20); ctx.fill();
+        }
+    }
+
+    for(let p of currentLevelData.platforms){
+        if(p.type === 'bridge') {
+            ctx.fillStyle = "#795548"; ctx.fillRect(p.x, p.y, p.width, p.height); 
+            ctx.fillStyle = "#4e342e"; for(let i=0; i<p.width; i+=20) ctx.fillRect(p.x+i, p.y, 2, p.height); 
+            ctx.fillStyle = "#bdc3c7"; ctx.fillRect(p.x, p.y+2, p.width, 2); 
+        } else if (p.type === 'road') {
+            ctx.fillStyle = "#34495e"; ctx.fillRect(p.x, p.y, p.width, p.height);
+            ctx.fillStyle = "#2c3e50"; ctx.fillRect(p.x, p.y+15, p.width, p.height-15);
+            ctx.fillStyle = "#f1c40f"; for(let i=10; i<p.width; i+=40) ctx.fillRect(p.x+i, p.y+6, 20, 3); 
+        } else {
+            let topC="#2e7d32", midC="#6d4c41", botC="#5d4037";
+            if(currentLevelData.biome === 'snow') { topC="#fff"; midC="#90a4ae"; botC="#78909c"; }
+            if(currentLevelData.biome === 'desert') { topC="#f6a821"; midC="#e67e22"; botC="#d35400"; }
+            if(currentLevelData.biome === 'volcano') { topC="#000"; midC="#3e2723"; botC="#212121"; }
+            let grad = ctx.createLinearGradient(0, p.y, 0, p.y+p.height);
+            grad.addColorStop(0, topC); grad.addColorStop(0.1, midC); grad.addColorStop(1, botC);
+            ctx.fillStyle = grad; ctx.fillRect(p.x, p.y, p.width, p.height);
+            ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.fillRect(p.x, p.y, p.width, 5); 
+        }
+    }
+
+    for(let e of currentLevelData.enemies) {
+        if(e.isBoss || e.isChaseBoss) {
+            ctx.fillStyle = e.damaged ? "white" : (e.isChaseBoss ? "#2c3e50" : "#8e44ad"); 
+            ctx.shadowColor = e.isChaseBoss ? "red" : "black"; ctx.shadowBlur = 15;
+            ctx.fillRect(e.x, e.y, e.width, e.height); ctx.shadowBlur = 0;
+            ctx.fillStyle = "#e74c3c"; let lx = (player.x > e.x) ? e.width/2 : e.width/4;
+            ctx.fillRect(e.x + lx, e.y + e.height/4, e.width/6, e.height/6); ctx.fillRect(e.x + lx + e.width/4, e.y + e.height/4, e.width/6, e.height/6);
+            ctx.fillStyle = "white"; ctx.font = "bold 20px 'Segoe UI'"; ctx.textAlign = "center"; ctx.fillText(e.name, e.x + e.width/2, e.y - 20);
+            if(e.isBoss) {
+                ctx.fillStyle = "black"; ctx.fillRect(e.x, e.y - 15, e.width, 8);
+                ctx.fillStyle = "#e74c3c"; ctx.fillRect(e.x, e.y - 15, (e.hp / e.maxHp) * e.width, 8);
+            }
+        } else {
+            ctx.fillStyle = e.color || "#f1c40f"; ctx.beginPath(); ctx.roundRect(e.x, e.y, e.width, e.height, 5); ctx.fill();
+            ctx.fillStyle = "black"; ctx.fillRect(e.x + (e.dx>0?15:5), e.y + 8, 4, 4); ctx.fillRect(e.x + (e.dx>0?22:12), e.y + 8, 4, 4);
+        }
+    }
+
+    if(gameState !== "dead") {
+        if (!player.invulnerable || frames % 8 < 4) {
+            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.beginPath(); ctx.ellipse(player.x+15, player.y+30, 15, 4, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#ff4757"; ctx.beginPath(); ctx.roundRect(player.x, player.y, player.width, player.height, 5); ctx.fill();
+            ctx.fillStyle = "white"; let ex = keys.left ? 4 : (keys.right ? 16 : 10);
+            ctx.fillRect(player.x+ex, player.y+8, 8, 8); ctx.fillRect(player.x+ex+10, player.y+8, 8, 8);
+            ctx.fillStyle = "black"; ctx.fillRect(player.x+ex+(keys.left?0:4), player.y+10, 4, 4); ctx.fillRect(player.x+ex+10+(keys.left?0:4), player.y+10, 4, 4);
+        }
+    }
+
+    for(let p of particles) { ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); }
+    ctx.globalAlpha = 1.0; ctx.restore();
+
+    ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.beginPath(); ctx.roundRect(10, 10, 160, 70, 8); ctx.fill();
+    ctx.fillStyle = "white"; ctx.font = "bold 20px 'Segoe UI'"; ctx.textAlign = "left"; 
+    let levelText = currentLevelIndex === 21 ? "¡HUYE!" : "Nivel: " + currentLevelIndex;
+    ctx.fillText(levelText, 25, 35);
+    ctx.fillStyle = "#555"; ctx.fillRect(25, 50, 130, 15);
+    ctx.fillStyle = (player.hp < player.maxHp / 3) ? "#e74c3c" : "#2ecc71";
+    ctx.fillRect(25, 50, 130 * (Math.max(0, player.hp) / player.maxHp), 15);
+    ctx.strokeStyle = "white"; ctx.strokeRect(25, 50, 130, 15);
+
+    if(settings.showFPS) { ctx.fillStyle="white"; ctx.font="16px Arial"; ctx.textAlign="right"; ctx.fillText(`FPS: ${currentFPS}`, canvas.width-20, 30); }
+}
+
+function loop(timestamp){
+    if (timestamp) { let dt = timestamp - lastTime; currentFPS = Math.round(1000/dt); lastTime = timestamp; }
+    update(); draw(); requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
