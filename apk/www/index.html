@@ -30,6 +30,16 @@
     .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
     .key-bind { background: #222; padding: 5px 15px; border-radius: 5px; cursor: pointer; color: #f1c40f; border: 1px solid #777; }
     
+
+    /* PANTALLAS BAJAS (móvil horizontal) */
+    @media (max-height: 500px) {
+        #instructions { display: none; }
+        #levelSelector { right: 10px; top: 10px; }
+        .menu-panel { padding: 15px 20px; max-height: 94vh; overflow-y: auto; }
+        .menu-panel h1 { font-size: 22px; margin-bottom: 10px; }
+        .menu-panel button { padding: 8px; margin: 5px 0; font-size: 15px; }
+        .setting-row { margin: 8px 0; font-size: 15px; padding-bottom: 6px; }
+    }
     .hidden { display: none !important; }
 </style>
 </head>
@@ -97,7 +107,15 @@ let settings = { showFPS: false, musicOn: true, sfxOn: true };
 let customKeys = { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" };
 let waitingForKey = null;
 
-function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function resize(){
+    // Resolución virtual: el juego está diseñado para al menos 600px de alto.
+    // En pantallas bajas (móvil horizontal) se escala todo para que quepa.
+    const scale = Math.min(1, window.innerHeight / 600);
+    canvas.width = Math.ceil(window.innerWidth / scale);
+    canvas.height = Math.ceil(window.innerHeight / scale);
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+}
 resize(); window.addEventListener("resize", resize);
 
 const gravity = 0.5; 
