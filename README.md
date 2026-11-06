@@ -28,6 +28,9 @@ Para actualizar el juego en el APK, cambia `apk/www/index.html` y vuelve a ejecu
 
 ## Licencia
 
-Código abierto bajo la [licencia MIT](LICENSE). Puedes usarlo, modificarlo y compartirlo, manteniendo el aviso de copyright.
+Código abierto bajo la [licencia MIT con requisito de atribución](LICENSE). Puedes usarlo, modificarlo y compartirlo libremente, pero tu versión debe:
+
+- Conservar el aviso de copyright.
+- Mostrar de forma visible el crédito **"Creado por @KristianCraft"** (en el menú principal, pantalla de inicio o de créditos) y en la descripción del proyecto si lo publicas.
 
 Creado por [@KristianCraft](https://github.com/KristianCraft).
